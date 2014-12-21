@@ -234,7 +234,8 @@ public class VoiceDialerActivity extends Activity {
         mChoiceClient = new ChoiceRecognizerClient();
 
         mAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (BluetoothHeadset.isBluetoothVoiceDialingEnabled(this) && mAdapter != null) {
+        if (BluetoothHeadset.isBluetoothVoiceDialingEnabled(this) && mAdapter != null
+            && mAdapter.isEnabled()) {
            if (!mAdapter.getProfileProxy(this, mBluetoothHeadsetServiceListener,
                                          BluetoothProfile.HEADSET)) {
                Log.e(TAG, "Getting Headset Proxy failed");
@@ -377,12 +378,9 @@ public class VoiceDialerActivity extends Activity {
     }
 
     private void updateBluetoothParameters(boolean connected) {
-        if (connected) {
+        if (connected && mBluetoothHeadset.startVoiceRecognition(mBluetoothDevice)) {
             if (false) Log.d(TAG, "using bluetooth");
             mUsingBluetooth = true;
-
-            mBluetoothHeadset.startVoiceRecognition(mBluetoothDevice);
-
             mSampleRate = BLUETOOTH_SAMPLE_RATE;
             mCommandEngine.setMinimizeResults(true);
             mCommandEngine.setAllowOpenEntries(false);
@@ -397,7 +395,7 @@ public class VoiceDialerActivity extends Activity {
             mTts = new TextToSpeech(VoiceDialerActivity.this, new TtsInitListener());
             mTtsParams = new HashMap<String, String>();
             mTtsParams.put(TextToSpeech.Engine.KEY_PARAM_STREAM,
-                    String.valueOf(AudioManager.STREAM_VOICE_CALL));
+                    String.valueOf(AudioManager.STREAM_BLUETOOTH_SCO));
             // we need to wait for the TTS system and the SCO connection
             // before we can start listening.
         } else {
@@ -1002,7 +1000,11 @@ public class VoiceDialerActivity extends Activity {
     }
 
     private void startActivityHelp(Intent intent) {
-        startActivity(intent);
+        try {
+            startActivity(intent);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to start activity");
+        }
     }
 
     private void listenForCommand() {
